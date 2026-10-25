@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="InterQuiz - a simple interactive learning quiz">
+  <title>InterQuiz | Learning Quiz</title>
+  <style>
+    :root { color-scheme: light; --primary: #5b4bdb; --ink: #1d2340; --muted: #69718a; --surface: #fff; --bg: #f4f6ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: radial-gradient(circle at top right, #e4e7ff, transparent 35%), var(--bg); min-height: 100vh; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px clamp(18px, 5vw, 64px); }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; letter-spacing: -.04em; }
+    .logo { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; color: white; background: var(--primary); box-shadow: 0 8px 20px #5b4bdb40; }
+    .tag { color: var(--muted); font-size: .9rem; }
+    main { width: min(920px, calc(100% - 32px)); margin: 34px auto 60px; }
+    .hero { text-align: center; margin: 0 auto 28px; max-width: 680px; }
+    .eyebrow { display: inline-block; padding: 7px 12px; border-radius: 999px; color: var(--primary); background: #e9e7ff; font-size: .8rem; font-weight: 750; }
+    h1 { font-size: clamp(2.1rem, 6vw, 3.8rem); line-height: 1.06; letter-spacing: -.055em; margin: 17px 0 12px; }
+    .hero p { color: var(--muted); font-size: 1.05rem; line-height: 1.7; margin: 0; }
+    .panel { background: var(--surface); border: 1px solid #e6e8f3; border-radius: 24px; padding: clamp(20px, 4vw, 36px); box-shadow: 0 20px 60px #303a6710; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .9rem; margin-bottom: 13px; }
+    .track { height: 8px; background: #eceef7; border-radius: 20px; overflow: hidden; margin-bottom: 28px; }
+    .fill { height: 100%; width: 0; background: linear-gradient(90deg, #5b4bdb, #8a7cff); transition: width .25s ease; }
+    h2 { font-size: clamp(1.2rem, 3vw, 1.65rem); line-height: 1.4; margin: 0 0 20px; }
+    .answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .answer { padding: 16px; min-height: 62px; text-align: left; border: 1px solid #dfe2f0; background: white; color: var(--ink); border-radius: 14px; font: inherit; cursor: pointer; transition: .15s ease; }
+    .answer:hover:not(:disabled) { border-color: var(--primary); background: #f8f7ff; transform: translateY(-1px); }
+    .answer:focus-visible, button:focus-visible { outline: 3px solid #aaa1ff; outline-offset: 2px; }
+    .answer.correct { border-color: #1b9b69; background: #eafaf2; }
+    .answer.wrong { border-color: #d94d63; background: #fff0f2; }
+    .feedback { min-height: 28px; margin: 16px 0 0; color: var(--muted); font-weight: 650; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+    .primary { border: 0; border-radius: 13px; padding: 13px 20px; background: var(--primary); color: white; font: inherit; font-weight: 750; cursor: pointer; }
+    .primary:disabled { opacity: .4; cursor: not-allowed; }
+    .result { text-align: center; padding: 24px 0 8px; }
+    .result .score { font-size: 3.5rem; font-weight: 850; letter-spacing: -.06em; color: var(--primary); margin: 12px 0; }
+    .hidden { display: none; }
+    footer { text-align: center; color: var(--muted); padding: 0 16px 28px; font-size: .85rem; }
+    @media (max-width: 580px) { header { padding-top: 16px; } .tag { display: none; } .answers { grid-template-columns: 1fr; } main { margin-top: 20px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="logo">IQ</span><span>InterQuiz</span></div>
+    <div class="tag">Learn something new, every day</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="eyebrow">QUICK KNOWLEDGE CHECK</span>
+      <h1>Learn. Practice. <span style="color:var(--primary)">Improve.</span></h1>
+      <p>Test your knowledge with this short sample quiz. Choose an answer for each question and see your score at the end.</p>
+    </section>
+
+    <section class="panel" aria-live="polite">
+      <div id="quiz">
+        <div class="topline"><span id="questionCount">Question 1 of 5</span><span id="scoreLabel">Score: 0</span></div>
+        <div class="track"><div class="fill" id="progress"></div></div>
+        <h2 id="question">Loading question…</h2>
+        <div class="answers" id="answers"></div>
+        <p class="feedback" id="feedback"></p>
+        <div class="actions"><button class="primary" id="nextButton" disabled>Next question →</button></div>
+      </div>
+      <div id="result" class="result hidden">
+        <span class="eyebrow">QUIZ COMPLETED</span>
+        <h2>Your result</h2>
+        <div class="score" id="finalScore">0/5</div>
+        <p id="resultMessage">Nice work!</p>
+        <button class="primary" id="restartButton">Try again</button>
+      </div>
+    </section>
+  </main>
+  <footer>InterQuiz • Sample quiz experience</footer>
+
+  <script>
+    const questions = [
+      { q: "Which language is mainly used to structure a web page?", options: ["HTML", "Python", "SQL", "C++"], answer: 0, explain: "HTML defines the structure and content of a web page." },
+      { q: "What does CSS control?", options: ["Database records", "Page styling and layout", "Server hardware", "File downloads"], answer: 1, explain: "CSS controls colors, spacing, typography, and layout." },
+      { q: "Which symbol begins a single-line comment in JavaScript?", options: ["##", "<!--", "//", "**"], answer: 2, explain: "JavaScript single-line comments begin with two forward slashes." },
+      { q: "Which one is a JavaScript data type?", options: ["Boolean", "Browser", "Website", "Keyboard"], answer: 0, explain: "Boolean values are true or false." },
+      { q: "What does a web browser do?", options: ["Only edits images", "Displays web pages", "Only stores passwords", "Builds computer hardware"], answer: 1, explain: "A browser requests and displays websites and web applications." }
+    ];
+    let current = 0, score = 0, answered = false;
+    const $ = id => document.getElementById(id);
+    function renderQuestion() {
+      answered = false;
+      const item = questions[current];
+      $("questionCount").textContent = `Question ${current + 1} of ${questions.length}`;
+      $("scoreLabel").textContent = `Score: ${score}`;
+      $("progress").style.width = `${(current / questions.length) * 100}%`;
+      $("question").textContent = item.q;
+      $("feedback").textContent = "";
+      $("nextButton").disabled = true;
+      $("nextButton").textContent = current === questions.length - 1 ? "See results →" : "Next question →";
+      const list = $("answers");
+      list.replaceChildren();
+      item.options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.className = "answer";
+        button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+        button.addEventListener("click", () => chooseAnswer(index));
+        list.appendChild(button);
+      });
+    }
+    function chooseAnswer(index) {
+      if (answered) return;
+      answered = true;
+      const item = questions[current];
+      const buttons = [...$("answers").children];
+      buttons.forEach((button, i) => {
+        button.disabled = true;
+        if (i === item.answer) button.classList.add("correct");
+        if (i === index && i !== item.answer) button.classList.add("wrong");
+      });
+      if (index === item.answer) {
+        score++;
+        $("feedback").textContent = `Correct! ${item.explain}`;
+      } else {
+        $("feedback").textContent = `Not quite. ${item.explain}`;
+      }
+      $("scoreLabel").textContent = `Score: ${score}`;
+      $("nextButton").disabled = false;
+    }
+    $("nextButton").addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      if (current < questions.length) renderQuestion();
+      else showResults();
+    });
+    function showResults() {
+      $("quiz").classList.add("hidden");
+      $("result").classList.remove("hidden");
+      $("progress").style.width = "100%";
+      $("finalScore").textContent = `${score}/${questions.length}`;
+      $("resultMessage").textContent = score === questions.length ? "Perfect score! Excellent work." : score >= 3 ? "Good job! Keep practising to improve further." : "Good effort! Review the answers and try again.";
+    }
+    $("restartButton").addEventListener("click", () => {
+      current = 0; score = 0;
+      $("result").classList.add("hidden");
+      $("quiz").classList.remove("hidden");
+      renderQuestion();
+    });
+    renderQuestion();
+  </script>
+</body>
+</html>
