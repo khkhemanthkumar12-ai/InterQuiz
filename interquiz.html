@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InterQuiz - Learning App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f3f5fb; color: #202943; line-height: 1.6; }
+    header { background: #4438ca; color: white; padding: 20px 6%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    header h1 { font-size: 25px; }
+    header span { font-size: 14px; opacity: .9; }
+    .hero { text-align: center; padding: 42px 16px 28px; }
+    .hero h2 { font-size: clamp(26px, 5vw, 38px); margin-bottom: 10px; }
+    .hero p { color: #667085; }
+    main { max-width: 1000px; margin: auto; padding: 20px; }
+    .panel { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 5px 22px #2029430d; margin-bottom: 22px; }
+    .panel h3 { margin-bottom: 15px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 24px; }
+    .stat { background: white; border-radius: 12px; padding: 18px; border: 1px solid #e6e8f2; }
+    .stat strong { display: block; color: #4438ca; font-size: 25px; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+    label { font-weight: bold; display: block; margin-bottom: 6px; }
+    select, button { width: 100%; padding: 12px; border-radius: 9px; font-size: 15px; }
+    select { border: 1px solid #d5d9e6; background: white; color: #202943; }
+    button { background: #4438ca; color: white; border: none; cursor: pointer; font-weight: bold; transition: .2s; }
+    button:hover { background: #3025a4; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .secondary { background: #ecebff; color: #4438ca; }
+    .secondary:hover { background: #dddbff; }
+    .question-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: #667085; margin-bottom: 12px; }
+    .timer { color: #c2410c; font-weight: bold; }
+    .progress { height: 8px; background: #e8eaf4; border-radius: 10px; overflow: hidden; margin: 12px 0 22px; }
+    .progress-bar { height: 100%; background: #6558e8; width: 0; transition: width .2s; }
+    .question { font-size: 20px; margin-bottom: 18px; }
+    .options { display: grid; gap: 12px; }
+    .option { text-align: left; background: white; color: #202943; border: 1px solid #dce0eb; font-weight: normal; }
+    .option:hover { background: #f2f0ff; border-color: #6558e8; }
+    .option.selected { background: #ecebff; border: 2px solid #4438ca; }
+    .option.correct { background: #dcfce7; border-color: #16a34a; }
+    .option.wrong { background: #fee2e2; border-color: #dc2626; }
+    .quiz-actions { display: flex; gap: 12px; margin-top: 22px; }
+    .quiz-actions button { flex: 1; }
+    .feedback { margin-top: 18px; padding: 14px; border-radius: 9px; background: #f2f0ff; }
+    .result-score { font-size: 48px; color: #4438ca; font-weight: bold; text-align: center; margin: 10px; }
+    .review-item { border-bottom: 1px solid #e5e7eb; padding: 16px 0; }
+    .review-item:last-child { border-bottom: none; }
+    .hidden { display: none !important; }
+    .muted { color: #667085; }
+    footer { text-align: center; padding: 25px; color: #667085; font-size: 14px; }
+    @media (max-width: 500px) { header { padding: 16px; } main { padding: 12px; } .panel { padding: 17px; } .quiz-actions { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>📘 InterQuiz</h1>
+  <span>Learn • Practice • Succeed</span>
+</header>
+<section class="hero">
+  <h2>Welcome to InterQuiz!</h2>
+  <p>Practice your Intermediate subjects and improve your knowledge.</p>
+</section>
+<main>
+  <section class="stats">
+    <div class="stat"><strong id="totalQuizzes">0</strong>Quizzes completed</div>
+    <div class="stat"><strong id="bestScore">0%</strong>Best score</div>
+    <div class="stat"><strong id="totalQuestions">0</strong>Questions answered</div>
+  </section>
+  <section class="panel" id="setup">
+    <h3>🎯 Start a Practice Quiz</h3>
+    <div class="controls">
+      <div><label for="year">Intermediate Year</label><select id="year"><option value="1">1st Year</option><option value="2">2nd Year</option></select></div>
+      <div><label for="stream">Stream</label><select id="stream"><option value="MPC">MPC</option><option value="BiPC">BiPC</option><option value="CEC">CEC</option><option value="HEC">HEC</option></select></div>
+      <div><label for="subject">Subject</label><select id="subject"></select></div>
+      <div><label for="duration">Quiz duration</label><select id="duration"><option value="5">5 minutes</option><option value="10" selected>10 minutes</option><option value="15">15 minutes</option></select></div>
+    </div>
+    <p class="muted" id="questionCount" style="margin:15px 0"></p>
+    <button id="startBtn">Start Quiz</button>
+  </section>
+  <section class="panel hidden" id="quiz">
+    <div class="question-top"><span id="questionNumber"></span><span class="timer" id="timer">10:00</span></div>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <h3 class="question" id="questionText"></h3>
+    <div class="options" id="options"></div>
+    <div id="feedback" class="feedback hidden"></div>
+    <div class="quiz-actions"><button class="secondary" id="prevBtn">Previous</button><button id="nextBtn">Next Question</button></div>
+  </section>
+  <section class="panel hidden" id="results">
+    <h3>🏆 Quiz Results</h3>
+    <div class="result-score" id="score"></div>
+    <p id="resultMessage" style="text-align:center"></p>
+    <div id="resultDetails" style="margin:20px 0"></div>
+    <button id="reviewBtn" class="secondary">Review Answers</button>
+    <div id="review" class="hidden"></div>
+    <button id="againBtn" style="margin-top:15px">Try Another Quiz</button>
+  </section>
+</main>
+<footer>InterQuiz © 2026 | Keep learning, keep growing!</footer>
+<script>
+  // Sample practice questions. Add syllabus-based questions in this object.
+  const questionBank = {
+    Physics: [
+      { q: "What is the SI unit of force?", options: ["Joule", "Newton", "Watt", "Pascal"], answer: 1, explanation: "The SI unit of force is the newton (N)." },
+      { q: "What is the speed of light in vacuum approximately?", options: ["3 × 10⁶ m/s", "3 × 10⁸ m/s", "300 m/s", "1500 m/s"], answer: 1, explanation: "Light travels at approximately 3 × 10⁸ metres per second in vacuum." },
+      { q: "Which instrument measures electric current?", options: ["Voltmeter", "Barometer", "Ammeter", "Thermometer"], answer: 2, explanation: "An ammeter measures electric current." }
+    ],
+    Chemistry: [
+      { q: "What is the chemical formula of water?", options: ["CO₂", "H₂O", "O₂", "NaCl"], answer: 1, explanation: "A water molecule contains two hydrogen atoms and one oxygen atom." },
+      { q: "What is the pH of neutral water at 25°C?", options: ["1", "5", "7", "14"], answer: 2, explanation: "Pure water is neutral and has a pH of approximately 7 at 25°C." },
+      { q: "Which gas do plants absorb during photosynthesis?", options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], answer: 2, explanation: "Plants absorb carbon dioxide during photosynthesis." }
+    ],
+    Mathematics: [
+      { q: "What is the derivative of x²?", options: ["x", "2x", "x³", "2"], answer: 1, explanation: "Using the power rule, d(x²)/dx = 2x." },
+      { q: "What is sin 90°?", options: ["0", "1", "-1", "1/2"], answer: 1, explanation: "The value of sin 90° is 1." },
+      { q: "What is the value of 5²?", options: ["10", "15", "20", "25"], answer: 3, explanation: "5² = 5 × 5 = 25." }
+    ],
+    Biology: [
+      { q: "Which organelle is known as the powerhouse of the cell?", options: ["Nucleus", "Mitochondrion", "Ribosome", "Golgi body"], answer: 1, explanation: "Mitochondria produce much of the usable energy in cells." },
+      { q: "What is the green pigment in plants called?", options: ["Haemoglobin", "Melanin", "Chlorophyll", "Keratin"], answer: 2, explanation: "Chlorophyll absorbs light energy for photosynthesis." },
+      { q: "Which organ pumps blood around the human body?", options: ["Lungs", "Kidney", "Heart", "Liver"], answer: 2, explanation: "The heart pumps blood through the circulatory system." }
+    ],
+    English: [
+      { q: "What is the plural of 'child'?", options: ["Childs", "Childes", "Children", "Childrens"], answer: 2, explanation: "The correct plural form is children." },
+      { q: "Choose the synonym of 'rapid'.", options: ["Slow", "Fast", "Weak", "Late"], answer: 1, explanation: "Rapid means fast or quick." },
+      { q: "Which word is a noun?", options: ["Beautiful", "Quickly", "Happiness", "Run"], answer: 2, explanation: "Happiness is a noun that names a state or quality." }
+    ],
+    "Computer Science": [
+      { q: "What does CPU stand for?", options: ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Control Processing User"], answer: 0, explanation: "CPU stands for Central Processing Unit." },
+      { q: "Which language is commonly used for web page structure?", options: ["HTML", "SQL", "C", "Bash"], answer: 0, explanation: "HTML defines the structure of web pages." },
+      { q: "Which of these is a Python data type?", options: ["integer", "folder", "monitor", "keyboard"], answer: 0, explanation: "Integers represent whole numbers in Python." }
+    ],
+    Commerce: [
+      { q: "What is the basic accounting equation?", options: ["Assets = Liabilities + Capital", "Assets = Sales + Expenses", "Profit = Assets + Capital", "Liabilities = Sales - Cash"], answer: 0, explanation: "The basic accounting equation is Assets = Liabilities + Owner's Equity." },
+      { q: "Which book records transactions first?", options: ["Ledger", "Journal", "Balance sheet", "Invoice"], answer: 1, explanation: "Transactions are initially recorded in the journal." }
+    ],
+    Economics: [
+      { q: "What does GDP stand for?", options: ["General Domestic Price", "Gross Domestic Product", "Global Development Plan", "Gross Distribution Process"], answer: 1, explanation: "GDP stands for Gross Domestic Product." },
+      { q: "What generally happens to demand when price falls, other things remaining equal?", options: ["Quantity demanded rises", "Quantity demanded always becomes zero", "Supply disappears", "Nothing can ever change"], answer: 0, explanation: "The law of demand says quantity demanded generally rises as price falls, other things equal." }
+    ],
+    History: [
+      { q: "In which year did India gain independence?", options: ["1942", "1945", "1947", "1950"], answer: 2, explanation: "India became independent on 15 August 1947." },
+      { q: "Who was the first Prime Minister of independent India?", options: ["Mahatma Gandhi", "Jawaharlal Nehru", "Sardar Patel", "Dr. Rajendra Prasad"], answer: 1, explanation: "Jawaharlal Nehru was India's first Prime Minister." }
+    ]
+  };
+
+  const streamSubjects = {
+    MPC: ["Mathematics", "Physics", "Chemistry", "English", "Computer Science"],
+    BiPC: ["Biology", "Physics", "Chemistry", "English"],
+    CEC: ["Commerce", "Economics", "History", "English"],
+    HEC: ["History", "Economics", "English"]
+  };
+  const $ = id => document.getElementById(id);
+  let questions = [], answers = [], current = 0, secondsLeft = 600, timerId = null, finished = false, reviewMode = false;
+
+  function getStats() {
+    try { return JSON.parse(localStorage.getItem("interquiz-stats")) || { quizzes: 0, best: 0, answered: 0 }; }
+    catch { return { quizzes: 0, best: 0, answered: 0 }; }
+  }
+  function saveStats(stats) {
+    try { localStorage.setItem("interquiz-stats", JSON.stringify(stats)); } catch {}
+  }
+  function updateStats() {
+    const s = getStats();
+    $("totalQuizzes").textContent = s.quizzes;
+    $("bestScore").textContent = s.best + "%";
+    $("totalQuestions").textContent = s.answered;
+  }
+  function updateSubjects() {
+    const subjectSelect = $("subject");
+    subjectSelect.innerHTML = "";
+    streamSubjects[$("stream").value].forEach(subject => {
+      const option = document.createElement("option");
+      option.value = subject;
+      option.textContent = subject;
+      subjectSelect.appendChild(option);
+    });
+    updateQuestionCount();
+  }
+  function updateQuestionCount() {
+    const subject = $("subject").value;
+    const count = (questionBank[subject] || []).length;
+    $("questionCount").textContent = count + " sample questions available for " + (subject || "this subject") + ".";
+    $("startBtn").disabled = count === 0;
+  }
+  function startQuiz() {
+    const subject = $("subject").value;
+    questions = (questionBank[subject] || []).map(q => ({ ...q, options: [...q.options] }));
+    if (!questions.length) { alert("No questions are available for this subject yet."); return; }
+    questions.sort(() => Math.random() - 0.5);
+    answers = questions.map(() => null);
+    current = 0;
+    secondsLeft = Number($("duration").value) * 60;
+    finished = false;
+    reviewMode = false;
+    $("setup").classList.add("hidden");
+    $("results").classList.add("hidden");
+    $("quiz").classList.remove("hidden");
+    renderQuestion();
+    updateTimer();
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      secondsLeft--;
+      updateTimer();
+      if (secondsLeft <= 0) finishQuiz();
+    }, 1000);
+  }
+  function updateTimer() {
+    const mins = Math.floor(Math.max(0, secondsLeft) / 60);
+    const secs = Math.max(0, secondsLeft) % 60;
+    $("timer").textContent = String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+  }
+  function renderQuestion() {
+    const q = questions[current];
+    $("questionNumber").textContent = "Question " + (current + 1) + " of " + questions.length;
+    $("progressBar").style.width = ((current + 1) / questions.length * 100) + "%";
+    $("questionText").textContent = q.q;
+    $("options").innerHTML = "";
+    $("feedback").classList.add("hidden");
+    q.options.forEach((option, index) => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = String.fromCharCode(65 + index) + ". " + option;
+      if (answers[current] === index) btn.classList.add("selected");
+      if (reviewMode) {
+        btn.disabled = true;
+        if (index === q.answer) btn.classList.add("correct");
+        else if (index === answers[current]) btn.classList.add("wrong");
+      } else {
+        btn.addEventListener("click", () => { answers[current] = index; renderQuestion(); });
+      }
+      $("options").appendChild(btn);
+    });
+    if (reviewMode) {
+      $("feedback").textContent = (answers[current] === q.answer ? "Correct! " : "Incorrect. The correct answer is " + q.options[q.answer] + ". ") + q.explanation;
+      $("feedback").classList.remove("hidden");
+    }
+    $("prevBtn").disabled = current === 0;
+    $("prevBtn").textContent = "Previous";
+    $("nextBtn").textContent = reviewMode
+      ? (current === questions.length - 1 ? "Back to Results" : "Next Review")
+      : (current === questions.length - 1 ? "Finish Quiz" : "Next Question");
+  }
+  function finishQuiz() {
+    if (finished) return;
+    finished = true;
+    clearInterval(timerId);
+    const correct = questions.reduce((sum, q, i) => sum + (answers[i] === q.answer ? 1 : 0), 0);
+    const percent = Math.round(correct / questions.length * 100);
+    const stats = getStats();
+    stats.quizzes++;
+    stats.best = Math.max(stats.best, percent);
+    stats.answered += questions.length;
+    saveStats(stats);
+    updateStats();
+    $("quiz").classList.add("hidden");
+    $("results").classList.remove("hidden");
+    $("review").classList.add("hidden");
+    $("reviewBtn").classList.remove("hidden");
+    $("score").textContent = percent + "%";
+    $("resultMessage").textContent = percent >= 80 ? "Excellent work! Keep it up!" : percent >= 50 ? "Good effort! Practice a little more." : "Keep practicing. You can improve!";
+    $("resultDetails").textContent = "Correct answers: " + correct + " / " + questions.length + " | Incorrect or unanswered: " + (questions.length - correct);
+  }
+  function showReview() {
+    reviewMode = true;
+    current = 0;
+    $("results").classList.add("hidden");
+    $("quiz").classList.remove("hidden");
+    $("reviewBtn").classList.add("hidden");
+    renderQuestion();
+  }
+  $("stream").addEventListener("change", updateSubjects);
+  $("subject").addEventListener("change", updateQuestionCount);
+  $("startBtn").addEventListener("click", startQuiz);
+  $("prevBtn").addEventListener("click", () => { if (current > 0) { current--; renderQuestion(); } });
+  $("nextBtn").addEventListener("click", () => {
+    if (reviewMode) {
+      if (current < questions.length - 1) { current++; renderQuestion(); }
+      else { $("quiz").classList.add("hidden"); $("results").classList.remove("hidden"); $("reviewBtn").classList.remove("hidden"); }
+      return;
+    }
+    if (current < questions.length - 1) { current++; renderQuestion(); }
+    else finishQuiz();
+  });
+  $("reviewBtn").addEventListener("click", showReview);
+  $("againBtn").addEventListener("click", () => {
+    clearInterval(timerId);
+    $("results").classList.add("hidden");
+    $("setup").classList.remove("hidden");
+  });
+  updateSubjects();
+  updateStats();
+</script>
+</body>
+</html>
